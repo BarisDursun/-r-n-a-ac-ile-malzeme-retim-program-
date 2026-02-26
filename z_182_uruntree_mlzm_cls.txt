@@ -1,0 +1,164 @@
+CLASS lcl_class DEFINITION.
+  PUBLIC SECTION.
+    DATA: lt_uagaci              TYPE TABLE OF z182_uagaci_t,
+          lt_stok                TYPE TABLE OF z182_stok_t,
+          lv_stok_malzeme_count  TYPE int4.
+
+    METHODS: start_screen,
+             pbo_0100,
+             pai_0100 IMPORTING iv_ucomm TYPE sy-ucomm, "gui status yakalamak için
+             get_data,
+             set_fcat,
+             set_layout,
+             display_alv,
+             set_alv_structure.
+ENDCLASS.
+
+CLASS lcl_class IMPLEMENTATION.
+
+  METHOD start_screen.
+    CALL SCREEN 0100.
+  ENDMETHOD.
+
+  METHOD pbo_0100.
+    SET PF-STATUS '0100'.
+    go_main->get_data( ).
+    go_main->set_layout( ).
+    go_main->display_alv( ).
+  ENDMETHOD.
+
+  METHOD pai_0100.
+    CASE iv_ucomm .
+      WHEN '&BACK'.
+        SET SCREEN 0.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD get_data.
+    SELECT * FROM z182_uagaci_t INTO TABLE @DATA(lt_uagaci).
+    SELECT * FROM z182_stok_t INTO TABLE @DATA(lt_stok).
+
+    go_main->set_fcat( ).
+    go_main->set_alv_structure( ). "dinamik boş tabloyu hazırla
+
+    LOOP AT lt_uagaci INTO DATA(ls_uagaci_grp) GROUP BY ls_uagaci_grp-ana_malzeme. "ana malzemeye göre
+      DATA: lv_min TYPE i.
+      CLEAR <gs_line>. "temizle karışmasın
+
+      "Ana Malzeme Numarasını Satıra Yazmak:
+      ASSIGN COMPONENT 'ANA_MALZEME' OF STRUCTURE <gs_line> TO FIELD-SYMBOL(<fs_ana>).
+      IF sy-subrc = 0.
+        <fs_ana> = ls_uagaci_grp-ana_malzeme.
+      ENDIF.
+
+      lv_min = 99999.
+
+      "Mantık:
+      LOOP AT GROUP ls_uagaci_grp INTO DATA(ls_uagaci_item). "groupp olan ana malzemeleri dön
+        READ TABLE lt_stok INTO DATA(ls_stok_tmp) WITH KEY alt_malzeme = ls_uagaci_item-alt_malzeme. "altmalzeme stok bak
+        IF sy-subrc = 0.
+          DATA(lv_temp) = floor( ls_stok_tmp-stok_miktari / ls_uagaci_item-alt_malzeme_miktari ).
+          IF lv_temp < lv_min.
+            lv_min = lv_temp.
+          ENDIF.
+        ELSE.
+          lv_min = 0.
+        ENDIF.
+      ENDLOOP.
+
+      " üretilebilcek miktar için
+      ASSIGN COMPONENT 'URETILEBILECEK_MIKTAR' OF STRUCTURE <gs_line> TO <gv_value>.
+      IF sy-subrc = 0.
+        <gv_value> = lv_min.
+      ENDIF.
+
+      " Dinamik kolonlara atama
+      LOOP AT lt_stok INTO DATA(ls_stok_loop). "stokları dön
+        READ TABLE lt_uagaci INTO DATA(ls_uagaci_find)
+          WITH KEY alt_malzeme = ls_stok_loop-alt_malzeme "alt ana bu olanlar
+                   ana_malzeme = ls_uagaci_grp-ana_malzeme.
+
+        " fcat'a eklerken kullandığımız M_ prefixli string formata çeviriyoruz
+        DATA(lv_dynamic_col) = |M_{ ls_stok_loop-alt_malzeme }|. "colum dynami
+        ASSIGN COMPONENT lv_dynamic_col OF STRUCTURE <gs_line> TO <gv_value>.
+        IF sy-subrc EQ 0.
+          IF ls_uagaci_find IS NOT INITIAL.
+            <gv_value> = ls_uagaci_find-alt_malzeme_miktari.
+          ELSE.
+            <gv_value> = 0.
+          ENDIF.
+        ENDIF.
+        CLEAR ls_uagaci_find.
+      ENDLOOP.
+
+      INSERT <gs_line> INTO TABLE <gt_table>.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD set_fcat. "Dinamik alv iskeleti
+    " ana malzeme
+    gs_fcat-ref_field = 'ANA_MALZEME'.
+    gs_fcat-ref_table = 'Z182_UAGACI_T'.
+    gs_fcat-fieldname = 'ANA_MALZEME'.
+    gs_fcat-key = abap_true.
+    APPEND gs_fcat TO gt_fcat.
+    CLEAR gs_fcat.
+
+    "Miktar
+    gs_fcat-fieldname = 'URETILEBILECEK_MIKTAR'.
+    gs_fcat-scrtext_l = 'Üretilebilir Miktar'.
+    gs_fcat-scrtext_m = 'Üret. Miktar'.
+    gs_fcat-scrtext_s = 'Üret. Mik.'.
+    APPEND gs_fcat TO gt_fcat.
+    CLEAR gs_fcat.
+
+    " Dinamik stok columnları alt_malzeme sayısı kadar column açılmalı yeni ekleme olursa diye.
+    LOOP AT lt_stok INTO DATA(ls_stok).
+      DATA(lv_fname) = |M_{ ls_stok-alt_malzeme }|. " fieldname veriyoruz m1 gibi
+      gs_fcat-fieldname = lv_fname.
+      gs_fcat-scrtext_l = |{ ls_stok-alt_malzeme }|. " Ekranda başlık olarak yine numarası yazsın
+      gs_fcat-scrtext_m = |{ ls_stok-alt_malzeme }|.
+      gs_fcat-scrtext_s = |{ ls_stok-alt_malzeme }|.
+      APPEND gs_fcat TO gt_fcat.
+      CLEAR gs_fcat.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD set_layout.
+    gs_layout-zebra = abap_true.
+    gs_layout-col_opt = abap_true.
+  ENDMETHOD.
+
+  METHOD display_alv.
+    IF go_grid IS INITIAL.
+      CREATE OBJECT go_container
+        EXPORTING container_name = 'CC_ALV'.
+
+      CREATE OBJECT go_grid
+        EXPORTING i_parent = go_container.
+
+      go_grid->set_table_for_first_display(
+        EXPORTING is_layout       = gs_layout
+        CHANGING  it_outtab       = <gt_table>
+                  it_fieldcatalog = gt_fcat ).
+    ELSE.
+      CALL METHOD go_grid->refresh_table_display.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD set_alv_structure. "Dinamik interval table oluşturmak 10 tane varsa 10 colum oluşturur.
+    DATA: lt_table TYPE REF TO data, "joker table çünkü koda çalışrıken belli oluyor
+          ls_line  TYPE REF TO data. "satır
+
+    CALL METHOD cl_alv_table_create=>create_dynamic_table "Biizm columlara göre obje yaratır
+      EXPORTING it_fieldcatalog = gt_fcat
+      IMPORTING ep_table        = lt_table. "referans obje içine direk atamassın
+
+    ASSIGN lt_table->* TO <gt_table>. "referans obje field symbol bağla
+
+    CREATE DATA ls_line LIKE LINE OF <gt_table>. "Dinamik tablonun yapısına uygun refrans obje line oluşturur
+    ASSIGN ls_line->* TO <gs_line>. "referans obje field symbol bağla
+    "dinamik tablomuz: <gt_table> dinamik satırımız: <gs_line>
+  ENDMETHOD.
+
+ENDCLASS.

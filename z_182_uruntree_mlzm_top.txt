@@ -1,0 +1,12 @@
+CLASS lcl_class DEFINITION DEFERRED.
+
+FIELD-SYMBOLS: <gt_table> TYPE STANDARD TABLE,
+               <gs_line>,
+               <gv_value>. "Dinamik satır hücre için
+
+DATA: go_main      TYPE REF TO lcl_class,
+      go_grid      TYPE REF TO cl_gui_alv_grid,
+      go_container TYPE REF TO cl_gui_custom_container,
+      gt_fcat      TYPE lvc_t_fcat,
+      gs_fcat      TYPE lvc_s_fcat,
+      gs_layout    TYPE lvc_s_layo.

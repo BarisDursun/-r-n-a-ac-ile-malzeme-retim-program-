@@ -1,0 +1,9 @@
+REPORT z_182_uruntree_mlzm.
+
+INCLUDE: z_182_uruntree_mlzm_top,
+         z_182_uruntree_mlzm_cls,
+         z_182_uruntree_mlzm_mdl.
+
+START-OF-SELECTION.
+  CREATE OBJECT go_main.
+  go_main->start_screen( ).
