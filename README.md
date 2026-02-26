@@ -77,27 +77,27 @@ Program aşağıdaki algoritmayı uygular:
 ### ALV Rapor Çıktısı
 Dinamik ALV Grid üzerinde ana malzemelerin üretilebilir miktarları:
 
-![ALV Rapor Çıktısı](RESİMLER/Ekran%20görüntüsü%202026-02-26%20230327.png)
+![ALV Rapor Çıktısı](Ekran%20görüntüsü%202026-02-26%20230327.png)
 
 ### Ürün Ağacı Tablosu – `Z182_UAGACI_T`
 
 Tablo yapısı (ABAP Dictionary):
 
-![Ürün Ağacı Tablo Yapısı](RESİMLER/Ekran%20görüntüsü%202026-02-26%20230353.png)
+![Ürün Ağacı Tablo Yapısı](Ekran%20görüntüsü%202026-02-26%20230353.png)
 
 Tablo verileri:
 
-![Ürün Ağacı Verileri](RESİMLER/Ekran%20görüntüsü%202026-02-26%20230456.png)
+![Ürün Ağacı Verileri](Ekran%20görüntüsü%202026-02-26%20230456.png)
 
 ### Stok Tablosu – `Z182_STOK_T`
 
 Tablo yapısı (ABAP Dictionary):
 
-![Stok Tablo Yapısı](RESİMLER/Ekran%20görüntüsü%202026-02-26%20230408.png)
+![Stok Tablo Yapısı](Ekran%20görüntüsü%202026-02-26%20230408.png)
 
 Tablo verileri:
 
-![Stok Verileri](RESİMLER/Ekran%20görüntüsü%202026-02-26%20230436.png)
+![Stok Verileri](Ekran%20görüntüsü%202026-02-26%20230436.png)
 
 ---
 
@@ -135,3 +135,4 @@ Bu proje, SAP ABAP eğitimi kapsamında geliştirilmiştir.
 ---
 
 > **#SAP #ABAP #ALV #BillOfMaterials #ÜrünAğacı #StokYönetimi #DynamicALV #OOP #SAPDevelopment #ERPDevelopment**
+
